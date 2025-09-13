@@ -1,0 +1,128 @@
+x-spark-comon:
+  &spark-common
+  build:
+    context: .
+    dockerfile: Dockerfile.jupyter
+  volumes:
+    - ./jobs:/opt/spark/jobs
+    - ./dags:/opt/spark/dags
+    - ./notebooks:/home/spark/notebooks
+
+services:
+  spark-master:
+    #image: spark:4.0.0-scala2.13-java21-python3-ubuntu
+    # build:
+    #   context: .
+    #   dockerfile: Dockerfile.jupyter
+    <<: *spark-common
+
+    environment:
+      - SPARK_MASTER_HOST=spark-master # Or the container's IP/hostname
+      - SPARK_MASTER_PORT=7077
+      - SPARK_MASTER_WEBUI_PORT=8080
+      - SPARK_NO_DAEMONIZE=true # To run master in foreground
+    ports:
+      - 7077:7077
+      - 8080:8080
+      - 8888:8888
+    volumes:
+      - ./data:/opt/spark/data
+    container_name: spark-master
+    command: "/opt/spark/sbin/start-master.sh"
+    # && nohup jupyter lab --ip=0.0.0.0 --allow-root --no-browser --NotebookApp.token='' &"
+        
+    networks:
+      elt:
+        ipv4_address: 172.25.0.2
+
+
+  spark-worker:
+      #image: spark:4.0.0-scala2.13-java21-python3-ubuntu
+      # build:
+      #   context: .
+      #   dockerfile: Dockerfile.jupyter
+      <<: *spark-common
+      environment:
+        - SPARK_MASTER_HOST=spark-master # Or the container's IP/hostname
+        - SPARK_MASTER_PORT=7077
+        - SPARK_MASTER_WEBUI_PORT=8080
+        - SPARK_NO_DAEMONIZE=true # To run master in foreground
+        - SPARK_MASTER_URL=spark://spark-master:7077
+      container_name: spark-worker
+      command: "/opt/spark/sbin/start-worker.sh spark://spark-master:7077"    
+      depends_on:
+      - spark-master
+      networks:
+        elt:
+          ipv4_address: 172.25.0.3
+
+  spark-history:
+      #image: spark:4.0.0-scala2.13-java21-python3-ubuntu
+      # build:
+      #   context: .
+      #   dockerfile: Dockerfile.jupyter
+      <<: *spark-common
+      environment:
+        - SPARK_MASTER_HOST=spark-master # Or the container's IP/hostname
+        - SPARK_MASTER_PORT=7077
+        - SPARK_MASTER_WEBUI_PORT=8080
+        - SPARK_NO_DAEMONIZE=true # To run master in foreground
+        - SPARK_MASTER_URL=spark://spark-master:7077
+      container_name: spark-history
+      command: "/opt/spark/sbin/start-history-server.sh"    
+      ports:
+        - 18080:18080
+      volumes:
+      - spark-events:/tmp/spark-events 
+      depends_on:
+        - spark-master    
+      networks:
+        elt:
+          ipv4_address: 172.25.0.4
+
+  postgres:
+    image: postgres:13
+    container_name: postgres
+    environment:
+      POSTGRES_USER: airflow
+      POSTGRES_PASSWORD: airflow
+      POSTGRES_DB: airflow
+    volumes:
+      - postgres-db-volume:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "airflow"]
+      interval: 10s
+      retries: 5
+      start_period: 5s
+    restart: always
+    networks:
+      elt:
+        ipv4_address: 172.25.0.5
+
+  # jupyter:
+  # #image: spark:4.0.0-scala2.13-java21-python3-ubuntu
+  #   build:
+  #     context: .
+  #     dockerfile: Dockerfile.jupyter
+  #   user: 
+  #     root
+  #   environment:
+  #   #   - SPARK_MASTER_HOST=spark-master # Or the container's IP/hostname
+  #   #   - SPARK_MASTER_PORT=7077
+  #   #   - SPARK_MASTER_WEBUI_PORT=8080
+  #   #   - SPARK_NO_DAEMONIZE=true # To run master in foreground
+  #   - SPARK_MASTER_URL=spark://spark-master:7079
+  #   ports:
+  #     - 8888:8888
+  #   container_name: jupyter
+  #   command: "jupyter lab --ip=0.0.0.0 --allow-root --no-browser"
+  #   depends_on:
+  #     - spark-master    
+volumes:
+  postgres-db-volume:
+  spark-events:
+networks:
+  elt:
+    ipam:
+      config:
+        - subnet: 172.25.0.0/16
