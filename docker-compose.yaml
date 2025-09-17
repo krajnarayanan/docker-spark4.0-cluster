@@ -7,6 +7,7 @@ x-spark-comon:
     - ./jobs:/opt/spark/jobs
     - ./dags:/opt/spark/dags
     - ./notebooks:/home/spark/notebooks
+    - ./data:/opt/spark/data:rw
 
 services:
   spark-master:
@@ -50,6 +51,8 @@ services:
         - SPARK_MASTER_URL=spark://spark-master:7077
       container_name: spark-worker
       command: "/opt/spark/sbin/start-worker.sh spark://spark-master:7077"    
+      # volumes:
+      #   - ./data:/opt/spark/data
       depends_on:
       - spark-master
       networks:
@@ -74,6 +77,7 @@ services:
         - 18080:18080
       volumes:
       - spark-events:/tmp/spark-events 
+      #- ./data:/opt/spark/data
       depends_on:
         - spark-master    
       networks:
@@ -98,7 +102,24 @@ services:
     networks:
       elt:
         ipv4_address: 172.25.0.5
-
+  localstack:
+      image: localstack/localstack:latest
+      environment:
+        - SERVICES=s3,lambda,dynamodb # Specify the services you need
+        - DEFAULT_REGION=us-east-1
+        - DOCKER_HOST=unix:///var/run/docker.sock # Required for Lambda functions
+      container_name: localstack
+      ports:
+        - "4510-4559:4510-4559" # For specific services if needed
+        - "4566:4566" # Default LocalStack port
+        - "8090:8080" # LocalStack Web Application
+      volumes:
+        - ./aws:/etc/localstack/init/ready.d
+        - ./data:/data
+        - "/var/run/docker.sock:/var/run/docker.sock" # For Lambda functions
+      networks:
+        elt:
+          ipv4_address: 172.25.0.6
   # jupyter:
   # #image: spark:4.0.0-scala2.13-java21-python3-ubuntu
   #   build:
