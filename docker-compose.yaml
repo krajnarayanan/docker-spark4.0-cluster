@@ -2,7 +2,7 @@ x-spark-comon:
   &spark-common
   build:
     context: .
-    dockerfile: Dockerfile.jupyter
+    dockerfile: Dockerfile.spark
   volumes:
     - ./jobs:/opt/spark/jobs
     - ./dags:/opt/spark/dags
