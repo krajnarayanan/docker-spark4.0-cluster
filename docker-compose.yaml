@@ -120,25 +120,31 @@ services:
       networks:
         elt:
           ipv4_address: 172.25.0.6
-  # jupyter:
-  # #image: spark:4.0.0-scala2.13-java21-python3-ubuntu
-  #   build:
-  #     context: .
-  #     dockerfile: Dockerfile.jupyter
-  #   user: 
-  #     root
-  #   environment:
-  #   #   - SPARK_MASTER_HOST=spark-master # Or the container's IP/hostname
-  #   #   - SPARK_MASTER_PORT=7077
-  #   #   - SPARK_MASTER_WEBUI_PORT=8080
-  #   #   - SPARK_NO_DAEMONIZE=true # To run master in foreground
-  #   - SPARK_MASTER_URL=spark://spark-master:7079
-  #   ports:
-  #     - 8888:8888
-  #   container_name: jupyter
-  #   command: "jupyter lab --ip=0.0.0.0 --allow-root --no-browser"
-  #   depends_on:
-  #     - spark-master    
+  jupyter:
+  #image: spark:4.0.0-scala2.13-java21-python3-ubuntu
+    build:
+      context: .
+      dockerfile: Dockerfile.jupyter
+    user: 
+      root
+    environment:
+      - SPARK_MASTER_HOST=spark-master # Or the container's IP/hostname
+      - SPARK_MASTER_PORT=7077
+      - SPARK_MASTER_WEBUI_PORT=8080
+      - SPARK_NO_DAEMONIZE=true # To run master in foreground
+      - SPARK_MASTER_URL=spark://spark-master:7079
+    ports:
+      - 8889:8888
+    container_name: jupyter-lb
+    command: "jupyter lab --ip=0.0.0.0 --no-browser  --allow-root --NotebookApp.token='' --NotebookApp.password='' --notebook-dir=/home/jupyter/notebooks"
+    depends_on:
+      - spark-master    
+    volumes:
+      - ./data:/opt/spark/data
+      - ./notebooks:/home/jupyter/notebooks
+    networks:
+        elt:
+          ipv4_address: 172.25.0.7
 volumes:
   postgres-db-volume:
   spark-events:
