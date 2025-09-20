@@ -63,13 +63,39 @@ RUN apt-get update && \
 # Add the deadsnakes PPA to access Python 3.10
 RUN add-apt-repository ppa:deadsnakes/ppa && \
     apt-get update && \
-    DEBIAN_FRONTEND=noninteractive apt-get install -y python3.10 python3.10-distutils python3.10-venv sudo python3-pip
+    DEBIAN_FRONTEND=noninteractive apt-get install -y python3.10 python3.10-distutils python3.10-venv sudo python3-pip \
+    ca-certificates unzip curl
 RUN pip install --upgrade pip && \
     rm -rf /var/lib/apt/lists/*
 
 # Set Python 3.10 as the default python3 (optional, but often useful)
 RUN update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.10 1 
-RUN pip install pyspark==4.0.0 jupyterlab
+RUN pip install pyspark==4.0.0 jupyterlab boto3
+
+# RUN curl -o /usr/local/lib/python3.10/dist-packages/pyspark/jars/hadoop-aws-3.3.4.jar \
+#     https://repo.maven.apache.org/maven2/org/apache/hadoop/hadoop-aws/3.3.4/hadoop-aws-3.3.4.jar \
+#     && curl -o /usr/local/lib/python3.10/dist-packages/pyspark/jars/aws-java-sdk-bundle-2.33.13.jar \
+#     https://repo.maven.apache.org/maven2/com/amazonaws/aws-java-sdk-bundle/1.12.262/aws-java-sdk-bundle-1.12.262.jar \
+#     && curl -o /usr/local/lib/python3.10/dist-packages/pyspark/jars/hadoop-common-3.3.4.jar \
+#     https://repo.maven.apache.org/maven2/org/apache/hadoop/hadoop-common/3.3.4/hadoop-common-3.3.4.jar    
+# ENV SPARK_HOME=/usr/local/lib/python3.10/dist-packages/pyspark
+# ENV SPARK_CLASSPATH=$SPARK_HOME/jars/hadoop-aws-3.3.4.jar:$SPARK_HOME/jars/aws-java-sdk-bundle-2.33.13.jar:$SPARK_HOME/jars/hadoop-common-3.3.4.jar
+
+# RUN curl -o /usr/local/lib/python3.10/dist-packages/pyspark/jars/hadoop-aws-3.2.0.jar \
+#     https://repo.maven.apache.org/maven2/org/apache/hadoop/hadoop-aws/3.2.0/hadoop-aws-3.2.0.jar \
+#     && curl -o /usr/local/lib/python3.10/dist-packages/pyspark/jars/aws-java-sdk-bundle-1.11.375.jar \
+#     https://repo.maven.apache.org/maven2/com/amazonaws/aws-java-sdk-bundle/1.11.375/aws-java-sdk-bundle-1.11.375.jar \
+#     && curl -o /usr/local/lib/python3.10/dist-packages/pyspark/jars/hadoop-common-3.2.0.jar \
+#     https://repo.maven.apache.org/maven2/org/apache/hadoop/hadoop-common/3.2.0/hadoop-common-3.2.0.jar
+# ENV SPARK_HOME=/usr/local/lib/python3.10/dist-packages/pyspark
+# ENV SPARK_CLASSPATH=$SPARK_HOME/jars/hadoop-aws-3.2.0.jar:$SPARK_HOME/jars/aws-java-sdk-bundle-1.11.375.jar:$SPARK_HOME/jars/hadoop-common-3.2.0.jar
+
+# RUN curl -o /usr/local/lib/python3.10/dist-packages/pyspark/jars/spark-hadoop-cloud_2.13-4.0.0.jar \
+#      https://repo.maven.apache.org/maven2/org/apache/spark/spark-hadoop-cloud_2.13/4.0.0/spark-hadoop-cloud_2.13-4.0.0.jar
+
+ENV SPARK_HOME=/usr/local/lib/python3.10/dist-packages/pyspark
+# ENV SPARK_CLASSPATH=$SPARK_HOME/jars/spark-hadoop-cloud_2.13-4.0.0.jar
+
 RUN useradd -ms /bin/bash jupyter && mkdir /home/jupyter/notebooks
 
 #CMD ["jupyter", "lab", "--ip='0.0.0.0'", "--allow-root", "--no-browser", "--NotebookApp.token=''","--NotebookApp.password=''" ]
